@@ -24,7 +24,7 @@ app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
 app.use(express.static(__dirname + '/public'));
 app.use(session({secret: 'nyan cat'}));
-
+var session;
 
 app.get('/', 
 function(req, res) {
@@ -45,6 +45,37 @@ function(req, res) {
   res.render('login');
 });
 
+app.post('/login', 
+  function(req, res) {
+    
+    var username = req.body.username;
+    
+    new User({'username': username}).fetch()
+      .then(function(model) {
+        if (model) {
+          bcrypt.compare(req.body.password, model.get('password'), function(err,match){
+            console.log(match);
+            if (match) {
+              session = req.session;
+              session.user =  username;
+              res.redirect('/');
+              //create session
+              //redirect to index html
+              
+            } else {
+              res.send(418);
+            }
+            
+          });
+        } else {
+          res.send(418);
+        }
+      }
+    );
+  }
+);
+
+
 app.get('/signup', 
 function(req, res) {
   res.render('signup');
@@ -57,13 +88,13 @@ app.post('/signup',
     
     new User({username: username}).fetch().then(function(found) {
       if (found) {
-        // alert user username is taken
+        res.send(409);
       } else {
         var user = new User ({username: username, password: password});
         
         user.save().then(function(newUser) {
           Users.add(newUser);
-          res.send(200);
+          res.send(201);
         });
       }
     })
