@@ -1,7 +1,9 @@
 var express = require('express');
 var util = require('./lib/utility');
+var session = require('express-session');
 var partials = require('express-partials');
 var bodyParser = require('body-parser');
+var bcrypt = require('bcrypt-nodejs');
 
 
 var db = require('./app/config');
@@ -21,22 +23,58 @@ app.use(bodyParser.json());
 // Parse forms (signup/login)
 app.use(bodyParser.urlencoded({ extended: true }));
 app.use(express.static(__dirname + '/public'));
+app.use(session({secret: 'nyan cat'}));
 
 
 app.get('/', 
 function(req, res) {
-  res.render('index');
+  restrict(req, res, function(){
+    res.render('index');
+  });
 });
 
 app.get('/create', 
 function(req, res) {
-  res.render('index');
+  restrict(req, res, function(){
+    res.render('index');
+  });
+});
+
+app.get('/login', 
+function(req, res) {
+  res.render('login');
+});
+
+app.get('/signup', 
+function(req, res) {
+  res.render('signup');
+});
+
+app.post('/signup', 
+  function(req, res) {
+    var username = req.body.username;
+    var password = encrypt(req.body.password);
+    
+    new User({username: username}).fetch().then(function(found) {
+      if (found) {
+        // alert user username is taken
+      } else {
+        var user = new User ({username: username, password: password});
+        
+        user.save().then(function(newUser) {
+          Users.add(newUser);
+          res.send(200);
+        });
+      }
+    })
 });
 
 app.get('/links', 
 function(req, res) {
-  Links.reset().fetch().then(function(links) {
-    res.send(200, links.models);
+  restrict(req,res, function () {
+    Links.reset().fetch().then(function(links) {
+      res.send(200, links.models);
+    });
   });
 });
 
@@ -74,9 +112,14 @@ function(req, res) {
   });
 });
 
+
 /************************************************************/
 // Write your authentication routes here
 /************************************************************/
+
+
+
+ 
 
 
 
@@ -110,3 +153,19 @@ app.get('/*', function(req, res) {
 
 console.log('Shortly is listening on 4568');
 app.listen(4568);
+
+
+
+function restrict(req, res, cb) {
+  if (req.session.user) {
+    cb();
+  } else {
+    req.session.error = 'Access denied!';
+    res.redirect('/login');
+  }
+}
+
+function encrypt(raw){
+  return bcrypt.hashSync(raw, bcrypt.genSaltSync());
+}
+
