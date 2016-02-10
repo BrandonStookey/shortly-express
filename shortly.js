@@ -42,6 +42,7 @@ function(req, res) {
 
 app.get('/login', 
 function(req, res) {
+  req.session.user = undefined;
   res.render('login');
 });
 
@@ -56,19 +57,14 @@ app.post('/login',
           bcrypt.compare(req.body.password, model.get('password'), function(err,match){
             console.log(match);
             if (match) {
-              session = req.session;
-              session.user =  username;
-              res.redirect('/');
-              //create session
-              //redirect to index html
-              
+              createSession(req, res, username);
             } else {
               res.send(418);
             }
             
           });
         } else {
-          res.send(418);
+          res.redirect('/login');
         }
       }
     );
@@ -94,7 +90,7 @@ app.post('/signup',
         
         user.save().then(function(newUser) {
           Users.add(newUser);
-          res.send(201);
+          createSession(req, res, username);
         });
       }
     })
@@ -120,7 +116,8 @@ function(req, res) {
 
   new Link({ url: uri }).fetch().then(function(found) {
     if (found) {
-      res.send(200, found.attributes);
+      console.log('found ', found.attributes);
+      return res.send(found.attributes);
     } else {
       util.getUrlTitle(uri, function(err, title) {
         if (err) {
@@ -142,8 +139,6 @@ function(req, res) {
     }
   });
 });
-
-
 /************************************************************/
 // Write your authentication routes here
 /************************************************************/
@@ -200,3 +195,8 @@ function encrypt(raw){
   return bcrypt.hashSync(raw, bcrypt.genSaltSync());
 }
 
+function createSession(req, res, username) {
+  session = req.session;
+  session.user =  username;
+  res.redirect('/');
+}

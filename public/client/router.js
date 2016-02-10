@@ -5,7 +5,8 @@ Shortly.Router = Backbone.Router.extend({
 
   routes: {
     '':       'index',
-    'create': 'create'
+    'create': 'create',
+    'login': 'login'
   },
 
   swapView: function(view){
@@ -20,5 +21,9 @@ Shortly.Router = Backbone.Router.extend({
 
   create: function(){
     this.swapView(new Shortly.createLinkView());
+  },
+  
+  login: function() {
+    location.reload();
   }
 });
